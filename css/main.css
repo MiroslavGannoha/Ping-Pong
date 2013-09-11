@@ -1,0 +1,11 @@
+body{
+    background-color: grey;
+}
+canvas{
+    background-color: lightblue;
+    margin: 0 auto;
+    display: block;
+    position: relative;
+    border-top: 3px solid lightgreen;
+    border-bottom: 3px solid blue;
+}
