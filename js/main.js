@@ -4,40 +4,17 @@ var canvas, canvasTimer;
 function initHTML(){
     var $canvasElement = $('<canvas width="' + CANVAS_WIDTH + '" height="' + CANVAS_HEIGHT + '"></canvas>');
     canvas = $canvasElement.get(0).getContext("2d");
-    $canvasElement.appendTo('body');
+    $canvasElement.appendTo('.wrap');
     canvas.backgroundColor="lightblue";
 
     var FPS = 30;
     canvasTimer = setInterval(function() {
-        update();
         draw();
-        player1.handleCollisions();
-        player2.handleCollisions();
+        player1.handleCollisions().update();
+        player2.handleCollisions().update();
+        ball.update();
     }, 1000/FPS);
 }
-
-function update() {
-    if (keydown.left) player.x -= 5;
-    if (keydown.right) player.x += 5;
-    if (keydown.up) player.y -= 3;
-    if (keydown.down) player.y += 3;
-    if (keydown.space) player.shoot();
-    
-    ball.y += ball.velocityY;
-    ball.x += ball.velocityX;
-
-    //player.x = clamp(0, CANVAS_WIDTH - player.width);
-    player.x = Math.min(player.x, CANVAS_WIDTH - player.width);
-    player.y = Math.min(player.y, CANVAS_HEIGHT - player.height);
-    player.x = Math.max(player.x, 0);
-    player.y = Math.max(player.y, 0);
-
-    if (ball.x > CANVAS_WIDTH - ball.width || ball.x < 0){
-        ball.velocityX = -ball.velocityX;
-    }
-
-}
-
 
 function draw() {
     canvas.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -45,8 +22,6 @@ function draw() {
     player2.draw();
     ball.draw();
 }
-
-
 
 function CanvasItem(){
     this.x = 0;
@@ -73,24 +48,44 @@ CanvasItem.prototype.midpoint = function() {
 }
 
 function Player(x, y){
-    this.x = x;
-    this.y = y;
+    this.startPositionX = this.x = x;
+    this.startPositionY = this.y = y;
     this.color = 'blue';
     this.width = 50;
+    this.score = 0;
 }
 Player.prototype = new CanvasItem();
 Player.prototype.handleCollisions = function() {
-    var k = player.midpoint().x / ball.midpoint().x ;
+    var k = this.midpoint().x / ball.midpoint().x ;
     if (k<1){ k = k-2; }
     else if (k===1){ k = 0; }
-    if (pushFromTop(player, ball)) {
-        ball.velocityY = -5;
+    if (pushFromTop(this, ball)) {
+        ball.velocityY = -8;
         ball.velocityX = -2*k;
     }
-    else if(pushFromBot(player, ball)){
-        ball.velocityY = 5;
+    else if(pushFromBot(this, ball)){
+        ball.velocityY = 8;
         ball.velocityX = -2*k;
     }
+    return this;
+}
+Player.prototype.update = function(){
+    if (keydown.left) this.x -= 5;
+    if (keydown.right) this.x += 5;
+    if (keydown.up) this.y -= 3;
+    if (keydown.down) this.y += 3;
+    if (keydown.space) this.shoot();
+
+    //this.x = clamp(0, CANVAS_WIDTH - this.width);
+    this.x = Math.min(this.x, CANVAS_WIDTH - this.width);
+    this.y = Math.min(this.y, CANVAS_HEIGHT - this.height);
+    this.x = Math.max(this.x, 0);
+    this.y = Math.max(this.y, 0);
+    return this;
+}
+Player.prototype.reset = function(){
+    this.x = this.startPositionX;
+    this.y = this.startPositionY;
 }
 
 function Ball(){
@@ -101,6 +96,38 @@ function Ball(){
     this.velocityX = 0;
 }
 Ball.prototype = new CanvasItem();
+Ball.prototype.update = function(){
+    this.y += this.velocityY;
+    this.x += this.velocityX;
+
+    if (this.x > CANVAS_WIDTH - this.width || this.x < 0){
+        this.velocityX = -this.velocityX;
+    }
+    if (this.y > CANVAS_HEIGHT - this.height){
+        player1.score += 1;
+        updateScore();
+        this.reset(true);
+        player1.reset();
+        player2.reset();
+    }
+    else if(this.y < 0){
+        player2.score += 1;
+        updateScore();
+        this.reset(false);
+        player1.reset();
+        player2.reset();
+    }
+}
+Ball.prototype.reset = function(isPositionBot){
+    this.x = CANVAS_WIDTH/2;
+    this.y = isPositionBot ? 460 : 40;
+    this.velocityY = 0;
+    this.velocityX = 0;
+}
+
+function updateScore(){
+    $('.score-block').text(player1.score + ':' + player2.score);
+}
 
 function clamp(min, max) {
     return Math.min(Math.max(this, min), max);
@@ -111,7 +138,6 @@ function pushFromBot(a,b){
 function pushFromTop(a,b){
     return a.collides(b) && a.y > b.y;
 }
-
 
 var player1 = new Player(105, 500);
 var player2 = new Player(105, 0);

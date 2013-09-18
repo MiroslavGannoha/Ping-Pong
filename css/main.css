@@ -1,5 +1,7 @@
 body{
     background-color: grey;
+    margin: 0;
+    padding: 0;
 }
 canvas{
     background-color: lightblue;
@@ -8,4 +10,22 @@ canvas{
     position: relative;
     border-top: 3px solid lightgreen;
     border-bottom: 3px solid blue;
+}
+.wrap{
+    width: 500px;
+    margin: 20px auto 0;
+    background-color: black;
+    padding: 20px;
+    position: relative;
+}
+.score-block{
+    width: 100px;
+    height: 80px;
+    position: absolute;
+    top: 220px;
+    left: 20px;
+    background-color: green;
+    font-size: 60px;
+    text-align: center;
+    line-height: 80px;
 }
