@@ -47,24 +47,27 @@ CanvasItem.prototype.midpoint = function() {
   };
 }
 
-function Player(x, y){
+function Player(x, y, ball){
     this.startPositionX = this.x = x;
     this.startPositionY = this.y = y;
     this.color = 'blue';
     this.width = 50;
+    this.height = 12;
     this.score = 0;
+    this.ball = ball;
 }
 Player.prototype = new CanvasItem();
 Player.prototype.handleCollisions = function() {
+    var ball = this.ball;
     var k = this.midpoint().x / ball.midpoint().x ;
     if (k<1){ k = k-2; }
     else if (k===1){ k = 0; }
     if (pushFromTop(this, ball)) {
-        ball.velocityY = -8;
+        ball.velocityY = -9;
         ball.velocityX = -2*k;
     }
     else if(pushFromBot(this, ball)){
-        ball.velocityY = 8;
+        ball.velocityY = 9;
         ball.velocityX = -2*k;
     }
     return this;
@@ -139,9 +142,9 @@ function pushFromTop(a,b){
     return a.collides(b) && a.y > b.y;
 }
 
-var player1 = new Player(105, 500);
-var player2 = new Player(105, 0);
 var ball = new Ball();
+var player1 = new Player(105, 500, ball);
+var player2 = new Player(105, 0, ball);
 
 
 $(document).ready(function(){
