@@ -1,7 +1,7 @@
 body{
     background-color: grey;
     margin: 0;
-    padding: 0;
+    padding: 1;
 }
 canvas{
     background-color: lightblue;
