@@ -146,7 +146,15 @@ var ball = new Ball();
 var player1 = new Player(105, 500, ball);
 var player2 = new Player(105, 0, ball);
 
-
+var socket;
 $(document).ready(function(){
     initHTML();
+    if (navigator.userAgent.toLowerCase().indexOf('chrome') != -1) {
+        socket = io.connect('http://localhost:8081', {'transports': ['xhr-polling']});
+    } else {
+        socket = io.connect('http://localhost:8081');
+    }
 });
+
+
+
