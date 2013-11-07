@@ -11,7 +11,6 @@ function start(){
         var name = 'no name';
         // Навешиваем обработчик на входящее сообщение
         socket.on('message', function (d) {
-            console.log('message', name)
             var data = JSON.parse(d);
             console.log(data);
             if (data.type == 'user_data') {
@@ -23,11 +22,11 @@ function start(){
             }
             else{
                 // Уведомляем клиента, что его сообщение успешно дошло до сервера
-                socket.json.send({'event': 'messageSent', 'name': name, 'text': data.text, 'time': data.time, 'sender': name});
+                socket.json.send({type: 'success'});
                 // Отсылаем сообщение остальным участникам чата
-                socket.broadcast.json.send({'event': 'messageReceived', 'name': name, 'text': data.text, 'time': data.time, 'sender': name});
+                socket.broadcast.json.send(data);
             }
-    });
+        });
         // При отключении клиента - уведомляем остальных
         socket.on('disconnect', function() {
             var time = (new Date).toLocaleTimeString();

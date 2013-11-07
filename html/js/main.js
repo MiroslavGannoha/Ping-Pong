@@ -11,7 +11,9 @@
                 height: 500,
                 FPS: 30,
                 ballOffset: 50,
-                DOMScore: '.score-block'
+                DOMScore: '.score-block',
+                DOMContainer: '.wrap',
+                socket: null
             }
             for(var option in defaultOptions) this[option] = options && options[option]!==undefined ? options[option] : defaultOptions[option];
 
@@ -19,7 +21,7 @@
             var canvasElement = this.canvasElement = document.createElement('canvas');
             canvasElement.width = this.width;
             canvasElement.height = this.height;
-            document.querySelector('.wrap').appendChild(canvasElement);
+            document.querySelector(this.DOMContainer).appendChild(canvasElement);
             this.canvas = canvasElement.getContext('2d');
             this.canvas.backgroundColor='lightblue';
 
@@ -30,10 +32,6 @@
             var that = this;
             this.canvasTimer = setInterval(function() {
                 that.canvas.clearRect(0, 0, that.width, that.height);
-                that.players.forEach(function(p){
-                    p.draw();
-                });
-                that.ball.draw();
                 that.handleCollisions();
                 that.players.forEach(function(p){
                     p.update();
@@ -49,12 +47,12 @@
             clamp: function(min, max) {
                 return Math.min(Math.max(this, min), max);
             },
-            addPlayer: function(homeBase){
+            addPlayer: function(homeBase, clientsPlayer){
                 if(this.players.length < 3){
                     var xPos = this.width/2,
                         yPos = homeBase == 'top' ? this.height : 0;
 
-                    var player = new Player(this, xPos, yPos, homeBase);
+                    var player = new Player(this, xPos, yPos, homeBase, clientsPlayer);
                     this.players.push(player);
                     return player;
                 }
@@ -74,7 +72,7 @@
             handleCollisions: function() {
                 var ball = this.ball;
                 this.players.forEach(function(player){
-                    var k = player.midpoint().x / ball.midpoint().x ;
+                    var k = player.midpoint().x / ball.midpoint().x;
                     if (k<1){ k = k-2; }
                     else if (k===1){ k = 0; }
                     if (player.pushFromTop(ball)) {
@@ -90,13 +88,12 @@
                 if (ball.y > this.height - ball.height){
                     this.scored('top');
                 }
-                else if(this.y < 0){
+                else if(ball.y < 0){
                     this.scored('bottom')
                 }
 
             }
         }
-
 
         /* Canvas Item class*/
         function CanvasItem(){
@@ -125,7 +122,7 @@
         /* -------- */
 
         /* Player class */
-        function Player(table, x, y, homeBase){
+        function Player(table, x, y, homeBase, clientsPlayer){
             this.startPositionX = this.x = x;
             this.startPositionY = this.y = y;
             this.color = 'blue';
@@ -134,19 +131,35 @@
             this.score = 0;
             this.table = table;
             this.homeBase = homeBase;
+            this.clientsPlayer = clientsPlayer;
+
+            var that = this;
+            if (!clientsPlayer){
+                socket.on('message', function(msg) {
+                    console.log('received', msg)
+                    that.x = msg.x;
+                    that.y = msg.y;
+
+                    that.update();
+                });
+            }
         }
         Player.prototype = new CanvasItem();
 
         Player.prototype.update = function(){
-            if (keydown.left) this.x -= 5;
-            if (keydown.right) this.x += 5;
-            if (keydown.up) this.y -= 3;
-            if (keydown.down) this.y += 3;
-            if (keydown.space) this.shoot();
-
+            if(this.clientsPlayer){
+                if (keydown.left) this.x -= 5;
+                if (keydown.right) this.x += 5;
+                if (keydown.up) this.y -= 3;
+                if (keydown.down) this.y += 3;
+                console.log('send', JSON.stringify({x: this.x, y: this.y}));
+                socket.send(JSON.stringify({x: this.x, y: this.y}));
+            }
             //this.x = clamp(0, canvasWidth - this.width);
             this.x = Math.max(Math.min(this.x, this.table.width - this.width), 0);
             this.y = Math.max(Math.min(this.y, this.table.height - this.height), 0);
+
+            this.draw();
             return this;
         }
         Player.prototype.reset = function(){
@@ -178,11 +191,11 @@
             if (this.x > this.table.width - this.width || this.x < 0){
                 this.velocityX = -this.velocityX;
             }
-
+            this.draw();
         };
         Ball.prototype.reset = function(homeBase){
             this.x = this.startPositionX;
-            this.y = homeBase == 'top' ? this.table.height - this.table.ballOffset : this.table.ballOffset;
+            this.y = homeBase == 'top' ? this.table.ballOffset : this.table.height - this.table.ballOffset;
             this.velocityY = 0;
             this.velocityX = 0;
         };
@@ -209,24 +222,29 @@
             getPrivateVar: function(){
                 return privateVar;
             },
-            init: function(){
-                var table = new Table(250, 500);
-                table.addPlayer('top');
+            init: function(socket){
+                var table = new Table({socket: socket});
+                table.addPlayer('top', true);
                 table.addPlayer('bottom');
             }
-        }
+        };
     }
+
+
     global.tennisGame = new Tennis;
 })(this, window, document, undefined);
 
 var socket;
 $(document).ready(function(){
-    tennisGame.init();
     if (navigator.userAgent.toLowerCase().indexOf('chrome') != -1) {
-        socket = io.connect('http://localhost:8081', {'transports': ['xhr-polling']});
+        socket = io.connect('http://localhost:8082', {'transports': ['xhr-polling']});
     } else {
-        socket = io.connect('http://localhost:8081');
+        socket = io.connect('http://localhost:8082');
     }
+    tennisGame.init(socket);
+
+    socket.on('connect', function () {
+    });
 });
 
 
