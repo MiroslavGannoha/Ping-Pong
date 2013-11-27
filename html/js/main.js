@@ -1,8 +1,5 @@
 (function(global, window, document, undefined){
     function Tennis(){
-
-        var ball = new Ball();
-
         /* Table class */
         function Table(options){
 
@@ -13,8 +10,11 @@
                 ballOffset: 50,
                 DOMScore: '.score-block',
                 DOMContainer: '.wrap',
-                socket: null
+                socket: null,
+                playersColors: ['red', 'green', 'blue', 'yellow'],
+                ballColor: 'black'
             }
+
             for(var option in defaultOptions) this[option] = options && options[option]!==undefined ? options[option] : defaultOptions[option];
 
 
@@ -52,7 +52,17 @@
                     var xPos = this.width/2,
                         yPos = homeBase == 'top' ? this.height : 0;
 
-                    var player = new Player(this, xPos, yPos, homeBase, clientsPlayer);
+                    var playerConfig = {
+                        table: this,
+                        xPos: xPos,
+                        yPos: yPos,
+                        homeBase: homeBase,
+                        color: this.playersColors[this.players.length] || this.playersColors[0],
+                        clientsPlayer: clientsPlayer
+                    }
+
+
+                    var player = new Player(playerConfig);
                     this.players.push(player);
                     return player;
                 }
@@ -122,21 +132,20 @@
         /* -------- */
 
         /* Player class */
-        function Player(table, x, y, homeBase, clientsPlayer){
-            this.startPositionX = this.x = x;
-            this.startPositionY = this.y = y;
-            this.color = 'blue';
+        function Player(config){
+            this.startPositionX = this.x = config.xPos;
+            this.startPositionY = this.y = config.yPos;
+            this.color = config.color;
             this.width = 50;
             this.height = 12;
             this.score = 0;
-            this.table = table;
-            this.homeBase = homeBase;
-            this.clientsPlayer = clientsPlayer;
+            this.table = config.table;
+            this.homeBase = config.homeBase;
+            this.clientsPlayer = config.clientsPlayer;
 
             var that = this;
-            if (!clientsPlayer){
+            if (!this.clientsPlayer){
                 socket.on('message', function(msg) {
-                    console.log('received', msg)
                     that.x = msg.x;
                     that.y = msg.y;
 
@@ -152,13 +161,11 @@
                 if (keydown.right) this.x += 5;
                 if (keydown.up) this.y -= 3;
                 if (keydown.down) this.y += 3;
-                console.log('send', JSON.stringify({x: this.x, y: this.y}));
                 socket.send(JSON.stringify({x: this.x, y: this.y}));
             }
             //this.x = clamp(0, canvasWidth - this.width);
             this.x = Math.max(Math.min(this.x, this.table.width - this.width), 0);
             this.y = Math.max(Math.min(this.y, this.table.height - this.height), 0);
-
             this.draw();
             return this;
         }
@@ -178,7 +185,7 @@
         function Ball(table, x, y){
             this.x = this.startPositionX = x;
             this.y = this.startPositionY = y;
-            this.color = 'red';
+            this.color = table.ballColor;
             this.velocityY = 0;
             this.velocityX = 0;
             this.table = table;
@@ -199,53 +206,23 @@
             this.velocityY = 0;
             this.velocityX = 0;
         };
-        Ball.prototype.subscribe = function(event, callback){
-            if(this.subscribers.hasOwnProperty(event)){
-                var index = this.subscribers[event].length;
-                while(index--){
-                    if(this.subscribers[event][index] == callback){
-                        return false;
-                    }
-                }
-                this.subscribers[event].push(callback);
-            }
-            else{
-                this.subscribers[event]=[callback]
-            }
-            return true;
-        };
-        /* -------- */
-
-
-        /* Public API */
-        return {
-            getPrivateVar: function(){
-                return privateVar;
-            },
-            init: function(socket){
-                var table = new Table({socket: socket});
-                table.addPlayer('top', true);
-                table.addPlayer('bottom');
-            }
-        };
-    }
 
 
     global.tennisGame = new Tennis;
 })(this, window, document, undefined);
 
 var socket;
+var table1;
 $(document).ready(function(){
     if (navigator.userAgent.toLowerCase().indexOf('chrome') != -1) {
         socket = io.connect('http://localhost:8082', {'transports': ['xhr-polling']});
     } else {
         socket = io.connect('http://localhost:8082');
     }
-    tennisGame.init(socket);
+    table1 = tennisGame.createTable(socket);
+    table1.addPlayer('top', true);
+    table1.addPlayer('bottom');
 
     socket.on('connect', function () {
     });
 });
-
-
-

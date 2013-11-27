@@ -1,5 +1,5 @@
 function start(){
-    // Подключаем модуль и ставим на прослушивание 8080-порта - 80й обычно занят под http-сервер
+    // Подключаем модуль и ставим на прослушивание 8082-порта - 80й обычно занят под http-сервер
     var io = require('socket.io').listen(8082); 
     // Отключаем вывод полного лога - пригодится в production'е
     io.set('log level', 2);
@@ -22,7 +22,7 @@ function start(){
             }
             else{
                 // Уведомляем клиента, что его сообщение успешно дошло до сервера
-                socket.json.send({type: 'success'});
+                //socket.json.send({type: 'success', x: data.x, y: data.y});
                 // Отсылаем сообщение остальным участникам чата
                 socket.broadcast.json.send(data);
             }
