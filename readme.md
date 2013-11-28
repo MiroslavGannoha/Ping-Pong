@@ -1,2 +1,3 @@
-Ping-pong
-Canvas + Socket.js + Node.js 
+Ping-pong game
+
+With - Canvas + Socket.js + Node.js + Connect.js
