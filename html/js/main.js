@@ -11,8 +11,11 @@
                 DOMScore: '.score-block',
                 DOMContainer: '.wrap',
                 socket: null,
-                playersColors: ['red', 'green', 'blue', 'yellow'],
-                ballColor: 'black'
+                playersColors: ['blue', 'red', 'green', 'yellow'],
+                ballColor: 'black',
+                tableColor: 'lightblue',
+                clientsPlayer: null,
+                players: []
             }
 
             for(var option in defaultOptions) this[option] = options && options[option]!==undefined ? options[option] : defaultOptions[option];
@@ -23,11 +26,9 @@
             canvasElement.height = this.height;
             document.querySelector(this.DOMContainer).appendChild(canvasElement);
             this.canvas = canvasElement.getContext('2d');
-            this.canvas.backgroundColor='lightblue';
+            this.canvas.backgroundColor= this.tableColor;
 
             this.ball = new Ball(this, this.width/2, this.height/2);
-
-            this.players = [];
 
             var that = this;
             this.canvasTimer = setInterval(function() {
@@ -37,33 +38,37 @@
                     p.update();
                 });
                 that.ball.update();
+                options.onUpdate && options.onUpdate();
             }, 1000/that.FPS);
         }
 
         Table.prototype = {
             updateScore: function(){
-                document.querySelector(this.DOMScore).innerText = document.querySelector(this.DOMScore).contentText = this.players[0].score + ':' + this.players[1].score;
+                //document.querySelector(this.DOMScore).innerText = document.querySelector(this.DOMScore).contentText = this.players[0].score + ':' + this.players[1].score;
             },
             clamp: function(min, max) {
                 return Math.min(Math.max(this, min), max);
             },
-            addPlayer: function(homeBase, clientsPlayer){
+            addPlayer: function(player){
+                this.players.push(player);
+            },
+            addNewPlayer: function(playerConfig, clientsPlayer){
                 if(this.players.length < 3){
-                    var xPos = this.width/2,
-                        yPos = homeBase == 'top' ? this.height : 0;
+                    /*var xPos = this.width/2,
+                        yPos = homeBase == 'top' ? this.height : 0;*/
 
-                    var playerConfig = {
-                        table: this,
-                        xPos: xPos,
-                        yPos: yPos,
-                        homeBase: homeBase,
-                        color: this.playersColors[this.players.length] || this.playersColors[0],
-                        clientsPlayer: clientsPlayer
+                    playerConfig.color = playerConfig.color || this.playersColors[this.players.length] || this.playersColors[0];
+
+
+                    var player = new Player(playerConfig, this, clientsPlayer);
+                    if (!player.config.id){
+                        player.config.id = this.players.length;
+                        this.players.push(player);
                     }
-
-
-                    var player = new Player(playerConfig);
-                    this.players.push(player);
+                    else{
+                        this.players[player.config.id] = player;
+                    }
+                    if(clientsPlayer) this.clientsPlayer = player;
                     return player;
                 }
                 return false;
@@ -107,77 +112,77 @@
 
         /* Canvas Item class*/
         function CanvasItem(){
-            this.x = 0;
-            this.y = 0;
+            this.config = {};
+            this.config.x = 0;
+            this.config.y = 0;
             this.width = 10;
             this.height = 10;
             this.color = 'grey';
         }
         CanvasItem.prototype.draw = function(){
-            this.table.canvas.fillStyle = this.color;
-            this.table.canvas.fillRect(this.x, this.y, this.width, this.height);
+            this.table.canvas.fillStyle = this.config.color;
+            this.table.canvas.fillRect(this.config.x, this.config.y, this.width, this.height);
         }
         CanvasItem.prototype.collides = function (a) {
-            return this.x < a.x + a.width &&
-                this.x + this.width > a.x &&
-                this.y < a.y + a.height &&
-                this.y + this.height > a.y;
+            return this.config.x < a.config.x + a.width &&
+                this.config.x + this.width > a.config.x &&
+                this.config.y < a.config.y + a.height &&
+                this.config.y + this.height > a.config.y;
         }
         CanvasItem.prototype.midpoint = function() {
             return {
-                x: this.x + this.width/2,
-                y: this.y + this.height/2
+                x: this.config.x + this.width/2,
+                y: this.config.y + this.height/2
             };
         }
         /* -------- */
 
         /* Player class */
-        function Player(config){
-            this.startPositionX = this.x = config.xPos;
-            this.startPositionY = this.y = config.yPos;
-            this.color = config.color;
+        function Player(config, table, clientsPlayer){
+            this.config = config;
+            this.startPositionX = config.x;
+            this.startPositionY = config.y;
             this.width = 50;
             this.height = 12;
             this.score = 0;
-            this.table = config.table;
-            this.homeBase = config.homeBase;
-            this.clientsPlayer = config.clientsPlayer;
+            this.table = table;
+            this.color = config.color;
+            this.clientsPlayer = clientsPlayer;
 
-            var that = this;
-            if (!this.clientsPlayer){
+           /* var that = this;
+            /*if (!this.clientsPlayer){
                 socket.on('message', function(msg) {
                     that.x = msg.x;
                     that.y = msg.y;
 
                     that.update();
                 });
-            }
+            }*/
         }
         Player.prototype = new CanvasItem();
 
         Player.prototype.update = function(){
             if(this.clientsPlayer){
-                if (keydown.left) this.x -= 5;
-                if (keydown.right) this.x += 5;
-                if (keydown.up) this.y -= 3;
-                if (keydown.down) this.y += 3;
-                socket.send(JSON.stringify({x: this.x, y: this.y}));
+                if (keydown.left) this.config.x -= 5;
+                if (keydown.right) this.config.x += 5;
+                if (keydown.up) this.config.y -= 3;
+                if (keydown.down) this.config.y += 3;
             }
             //this.x = clamp(0, canvasWidth - this.width);
-            this.x = Math.max(Math.min(this.x, this.table.width - this.width), 0);
-            this.y = Math.max(Math.min(this.y, this.table.height - this.height), 0);
+            this.config.x = Math.max(Math.min(this.config.x, this.table.width - this.width), 0);
+            this.config.y = Math.max(Math.min(this.config.y, this.table.height - this.height), 0);
             this.draw();
             return this;
         }
         Player.prototype.reset = function(){
-            this.x = this.startPositionX;
-            this.y = this.startPositionY;
+            this.config.x = this.startPositionX;
+            this.config.y = this.startPositionY;
         }
         Player.prototype.pushFromBot = function(pushedObj){
-            return this.collides(pushedObj) && this.y < pushedObj.y;
+            return this.collides(pushedObj) && this.config.y < pushedObj.config.y;
         },
         Player.prototype.pushFromTop = function(pushedObj){
-            return this.collides(pushedObj) && this.y > pushedObj.y;
+            return this.collides(pushedObj) && this.config.y > pushedObj.config.y;
         }
         /* -------- */
 
@@ -207,7 +212,17 @@
             this.velocityX = 0;
         };
 
+        /* Public API */
+        return {
+            getPrivateVar: function(){
+                return privateVar;
+            },
+            createTable: function(opts){
+                return new Table(opts);
+            }
+        };
 
+    }
     global.tennisGame = new Tennis;
 })(this, window, document, undefined);
 
@@ -219,10 +234,28 @@ $(document).ready(function(){
     } else {
         socket = io.connect('http://localhost:8082');
     }
-    table1 = tennisGame.createTable(socket);
-    table1.addPlayer('top', true);
-    table1.addPlayer('bottom');
-
-    socket.on('connect', function () {
+    table1 = tennisGame.createTable({socket: socket, onUpdate: onUpdate});
+    function onUpdate(){
+        if(table1.clientsPlayer) socket.emit('playerUpdate', table1.clientsPlayer.config);
+    }
+    socket.on('playerUpdate', function(updatedPlayerConfig){
+        table1.players[updatedPlayerConfig.id].config = updatedPlayerConfig;
     });
+    socket.on('connected', function(playersConfig){
+        console.log('connected', playersConfig)
+        playersConfig.forEach(function(playerConfig){
+            table1.addNewPlayer(playerConfig);
+        });
+    });
+    document.getElementById('enter').addEventListener('click', function(){
+        if (!table1.clientsPlayer){
+            var player1 = table1.addNewPlayer({x:100, y: 100}, true);
+            socket.emit('newPlayer', player1.config);
+        }
+    }, false);
+    socket.on('newPlayer', function(playerConfig){
+        table1.addNewPlayer(playerConfig);
+    });
+
+
 });

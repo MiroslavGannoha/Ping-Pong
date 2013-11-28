@@ -1,37 +1,27 @@
 function start(){
-    // Подключаем модуль и ставим на прослушивание 8082-порта - 80й обычно занят под http-сервер
-    var io = require('socket.io').listen(8082); 
-    // Отключаем вывод полного лога - пригодится в production'е
+    var io = require('socket.io').listen(8082);
     io.set('log level', 2);
+    var tableData = {players: []}
+
     // Навешиваем обработчик на подключение нового клиента
     io.sockets.on('connection', function (socket, data) {
-        // Т.к. чат простой - в качестве ников пока используем первые 5 символов от ID сокета
-        var ID = (socket.id).toString().substr(0, 5);
-        var time = (new Date).toLocaleTimeString();
-        var name = 'no name';
+        //var ID = (socket.id).toString().substr(0, 5);
         // Навешиваем обработчик на входящее сообщение
-        socket.on('message', function (d) {
-            var data = JSON.parse(d);
-            console.log(data);
-            if (data.type == 'user_data') {
-                name = data.name;
-                // Посылаем клиенту сообщение о том, что он успешно подключился и его имя
-                socket.json.send({'event': 'connected', 'name': name, 'time': time});
-                // Посылаем всем остальным пользователям, что подключился новый клиент и его имя
-                socket.broadcast.json.send({'event': 'userJoined', 'name': name, 'time': time});
-            }
-            else{
-                // Уведомляем клиента, что его сообщение успешно дошло до сервера
-                //socket.json.send({type: 'success', x: data.x, y: data.y});
-                // Отсылаем сообщение остальным участникам чата
-                socket.broadcast.json.send(data);
-            }
+        socket.emit('connected', tableData.players);
+        socket.on('playerUpdate', function(playerConfig){
+            tableData.players[playerConfig.id] = playerConfig;
+            socket.broadcast.emit('playerUpdate', playerConfig);
+        });
+
+        socket.on('newPlayer', function (playerConfig) {
+            tableData.players[playerConfig.id] = playerConfig;
+            socket.broadcast.emit('newPlayer', playerConfig);
         });
         // При отключении клиента - уведомляем остальных
-        socket.on('disconnect', function() {
+        /*socket.on('disconnect', function() {
             var time = (new Date).toLocaleTimeString();
             io.sockets.json.send({'event': 'userSplit', 'name': name, 'time': time});
-        });
+        });*/
     });
 
     /* handshake
