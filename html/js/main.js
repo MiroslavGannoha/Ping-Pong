@@ -10,7 +10,6 @@
                 ballOffset: 50,
                 DOMScore: '.score-block',
                 DOMContainer: '.wrap',
-                socket: null,
                 playersColors: ['blue', 'red', 'green', 'yellow'],
                 ballColor: 'black',
                 tableColor: 'lightblue',
@@ -148,16 +147,6 @@
             this.table = table;
             this.color = config.color;
             this.clientsPlayer = clientsPlayer;
-
-           /* var that = this;
-            /*if (!this.clientsPlayer){
-                socket.on('message', function(msg) {
-                    that.x = msg.x;
-                    that.y = msg.y;
-
-                    that.update();
-                });
-            }*/
         }
         Player.prototype = new CanvasItem();
 
@@ -188,26 +177,26 @@
 
         /* Ball class */
         function Ball(table, x, y){
-            this.x = this.startPositionX = x;
-            this.y = this.startPositionY = y;
-            this.color = table.ballColor;
+            this.config.x = this.startPositionX = x;
+            this.config.y = this.startPositionY = y;
+            this.config.color = table.ballColor;
             this.velocityY = 0;
             this.velocityX = 0;
             this.table = table;
         };
         Ball.prototype = new CanvasItem();
         Ball.prototype.update = function(){
-            this.y += this.velocityY;
-            this.x += this.velocityX;
+            this.config.y += this.velocityY;
+            this.config.x += this.velocityX;
 
-            if (this.x > this.table.width - this.width || this.x < 0){
+            if (this.config.x > this.table.width - this.width || this.config.x < 0){
                 this.velocityX = -this.velocityX;
             }
             this.draw();
         };
         Ball.prototype.reset = function(homeBase){
-            this.x = this.startPositionX;
-            this.y = homeBase == 'top' ? this.table.ballOffset : this.table.height - this.table.ballOffset;
+            this.config.x = this.startPositionX;
+            this.config.y = homeBase == 'top' ? this.table.ballOffset : this.table.height - this.table.ballOffset;
             this.velocityY = 0;
             this.velocityX = 0;
         };
@@ -234,7 +223,7 @@ $(document).ready(function(){
     } else {
         socket = io.connect('http://localhost:8082');
     }
-    table1 = tennisGame.createTable({socket: socket, onUpdate: onUpdate});
+    table1 = tennisGame.createTable({onUpdate: onUpdate});
     function onUpdate(){
         if(table1.clientsPlayer) socket.emit('playerUpdate', table1.clientsPlayer.config);
     }
