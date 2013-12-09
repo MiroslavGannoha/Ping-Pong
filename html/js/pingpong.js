@@ -11,13 +11,12 @@
                 ballOffset: 50,
                 DOMScore: '.score-block',
                 DOMContainer: '.wrap',
-                socket: null,
                 playersColors: ['blue', 'red', 'green', 'yellow'],
                 ballColor: 'black',
                 tableColor: 'lightblue',
                 clientsPlayer: null,
                 players: []
-            }
+            };
 
             for(var option in defaultOptions) this[option] = options && options[option]!==undefined ? options[option] : defaultOptions[option];
 
@@ -149,16 +148,6 @@
             this.table = table;
             this.color = config.color;
             this.clientsPlayer = clientsPlayer;
-
-           /* var that = this;
-            /*if (!this.clientsPlayer){
-                socket.on('message', function(msg) {
-                    that.x = msg.x;
-                    that.y = msg.y;
-
-                    that.update();
-                });
-            }*/
         }
         Player.prototype = new CanvasItem();
 
